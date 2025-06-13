@@ -9,13 +9,19 @@ interact with Git repositories through the MCP server.
 import os
 import sys
 import json
+import time
 import subprocess
 from typing import Dict, List, Optional, Any, Union, Tuple
+import jwt  # For GitHub App authentication
+from datetime import datetime, timedelta
 
-# Check for GitHub PAT in environment variables
+# Check for GitHub auth credentials in environment variables
 GITHUB_PAT = os.environ.get('GITHUB_PERSONAL_ACCESS_TOKEN')
+GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID')
+GITHUB_APP_PRIVATE_KEY = os.environ.get('GITHUB_APP_PRIVATE_KEY')
+GITHUB_APP_INSTALLATION_ID = os.environ.get('GITHUB_APP_INSTALLATION_ID')
 
-# Configure Git to use GitHub PAT if available
+# Configure Git to use GitHub authentication if available
 if GITHUB_PAT:
     # Configure Git to use HTTPS with credentials in URL
     try:
@@ -29,6 +35,93 @@ if GITHUB_PAT:
         print("[INFO] GitHub Personal Access Token detected. Git configured for authentication.", file=sys.stderr, flush=True)
     except Exception as e:
         print(f"[WARNING] Failed to configure Git credential helper: {str(e)}", file=sys.stderr, flush=True)
+elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+    print("[INFO] GitHub App credentials detected. GitHub App authentication will be used.", file=sys.stderr, flush=True)
+
+# GitHub App authentication functions
+def generate_jwt() -> str:
+    """
+    Generate a JWT for GitHub App authentication.
+    
+    Returns:
+        A JWT token string for GitHub App authentication
+    """
+    if not GITHUB_APP_ID or not GITHUB_APP_PRIVATE_KEY:
+        raise ValueError("GitHub App ID and private key must be set in environment variables")
+    
+    # Create JWT payload with expiration time (10 minutes maximum)
+    now = int(time.time())
+    payload = {
+        "iat": now - 60,  # issued at time, 60 seconds in the past to allow for clock drift
+        "exp": now + (10 * 60),  # JWT expiration time (10 minute maximum)
+        "iss": GITHUB_APP_ID  # GitHub App's identifier
+    }
+    
+    # Sign the JWT with the private key
+    private_key = GITHUB_APP_PRIVATE_KEY.replace('\\n', '\n')  # Fix newlines if needed
+    token = jwt.encode(payload, private_key, algorithm="RS256")
+    
+    # If token is bytes, decode to string (depends on jwt library version)
+    if isinstance(token, bytes):
+        return token.decode('utf-8')
+    return token
+
+def get_installation_token() -> Tuple[bool, str]:
+    """
+    Get an installation access token for GitHub App.
+    
+    Returns:
+        Tuple of (success, token or error message)
+    """
+    try:
+        # First generate a JWT
+        jwt_token = generate_jwt()
+        
+        # Determine installation ID
+        installation_id = GITHUB_APP_INSTALLATION_ID
+        if not installation_id:
+            # If no specific installation ID provided, get the first installation
+            cmd = [
+                "curl", "-s",
+                "-H", f"Authorization: Bearer {jwt_token}",
+                "-H", "Accept: application/vnd.github+json",
+                "-H", "X-GitHub-Api-Version: 2022-11-28",
+                "https://api.github.com/app/installations"
+            ]
+            
+            result = subprocess.run(cmd, capture_output=True, text=True)
+            if result.returncode != 0:
+                return False, f"Failed to get installations: {result.stderr}"
+            
+            installations = json.loads(result.stdout)
+            if not installations:
+                return False, "No installations found for this GitHub App"
+            
+            installation_id = installations[0]["id"]
+        
+        # Exchange JWT for an installation token
+        cmd = [
+            "curl", "-s",
+            "-X", "POST",
+            "-H", f"Authorization: Bearer {jwt_token}",
+            "-H", "Accept: application/vnd.github+json",
+            "-H", "X-GitHub-Api-Version: 2022-11-28",
+            f"https://api.github.com/app/installations/{installation_id}/access_tokens"
+        ]
+        
+        result = subprocess.run(cmd, capture_output=True, text=True)
+        if result.returncode != 0:
+            return False, f"Failed to get installation token: {result.stderr}"
+        
+        response = json.loads(result.stdout)
+        if "token" not in response:
+            return False, f"No token in response: {result.stdout}"
+        
+        return True, response["token"]
+        
+    except Exception as e:
+        print(f"[ERROR] Failed to get installation token: {str(e)}", file=sys.stderr, flush=True)
+        return False, f"Exception: {str(e)}"
 
 # Utility function to run Git commands
 def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]:
@@ -43,7 +136,7 @@ def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]
         Tuple of (success, output) where success is a boolean and output is the command output
     """
     try:
-        # Redact any potential PAT in the command for logging
+        # Redact any potential credentials in the command for logging
         log_command = command
         if GITHUB_PAT and GITHUB_PAT in command:
             log_command = command.replace(GITHUB_PAT, "***PAT***")
@@ -52,9 +145,36 @@ def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]
         
         # Set environment with GitHub PAT if available
         env = os.environ.copy()
-        if GITHUB_PAT:
-            env['GIT_ASKPASS'] = 'echo'
-            env['GIT_TERMINAL_PROMPT'] = '0'
+        
+        # If it's a GitHub operation that might need authentication
+        if any(x in command.lower() for x in ['clone', 'push', 'pull', 'fetch']):
+            if GITHUB_PAT:
+                # Use Personal Access Token
+                env['GIT_ASKPASS'] = 'echo'
+                env['GIT_TERMINAL_PROMPT'] = '0'
+            elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+                # Use GitHub App authentication
+                success, token = get_installation_token()
+                if success:
+                    # Extract the Git URL from the command if it's a clone operation
+                    if 'clone' in command.lower():
+                        # Add the token to the URL
+                        parts = command.split()
+                        for i, part in enumerate(parts):
+                            if part.startswith('https://github.com'):
+                                # Replace https://github.com with https://x-access-token:TOKEN@github.com
+                                parts[i] = part.replace('https://github.com', f'https://x-access-token:{token}@github.com')
+                                command = ' '.join(parts)
+                                break
+                    else:
+                        # For other operations, set the credential helper
+                        subprocess.run(
+                            f'git config credential.helper "!f() {{ echo username=x-access-token; echo password={token}; }}; f"',
+                            shell=True,
+                            capture_output=True,
+                            text=True,
+                            cwd=cwd
+                        )
         
         result = subprocess.run(
             f"git {command}",
@@ -69,7 +189,7 @@ def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]
             return True, result.stdout.strip()
         else:
             error_message = result.stderr.strip()
-            # Redact any potential PAT in error messages
+            # Redact any potential credentials in error messages
             if GITHUB_PAT and GITHUB_PAT in error_message:
                 error_message = error_message.replace(GITHUB_PAT, "***PAT***")
             print(f"[ERROR] Git command failed: {error_message}", file=sys.stderr, flush=True)
@@ -78,23 +198,30 @@ def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]
         print(f"[ERROR] Exception running git command: {str(e)}", file=sys.stderr, flush=True)
         return False, f"Exception: {str(e)}"
 
-# GitHub-specific utility function to transform URLs to include PAT
+# GitHub-specific utility function to transform URLs to include auth
 def transform_github_url(url: str) -> str:
     """
-    Transform a GitHub URL to include the PAT if available.
+    Transform a GitHub URL to include the authentication if available.
     
     Args:
         url: The GitHub URL to transform
     
     Returns:
-        The transformed URL with PAT if applicable
+        The transformed URL with authentication if applicable
     """
-    if not GITHUB_PAT or "github.com" not in url:
+    if "github.com" not in url:
         return url
     
-    # For HTTPS URLs, insert the PAT
+    # For HTTPS URLs, insert the authentication
     if url.startswith("https://github.com"):
-        return url.replace("https://", f"https://{GITHUB_PAT}:x-oauth-basic@")
+        if GITHUB_PAT:
+            # Use Personal Access Token
+            return url.replace("https://", f"https://{GITHUB_PAT}:x-oauth-basic@")
+        elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+            # Use GitHub App authentication
+            success, token = get_installation_token()
+            if success:
+                return url.replace("https://", f"https://x-access-token:{token}@")
     
     return url
 
@@ -111,7 +238,7 @@ def clone_with_auth(repo_url: str, target_dir: Optional[str] = None, options: st
     Returns:
         Tuple of (success, output)
     """
-    # Transform URL for GitHub repositories if PAT is available
+    # Transform URL for GitHub repositories if authentication is available
     auth_url = transform_github_url(repo_url)
     
     cmd = f"clone {options} {auth_url}"

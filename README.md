@@ -27,7 +27,7 @@ graph TD
 - **Ultra-fast filesystem operations**: Access, modify, and manage files with minimal latency
 - **Complete Git integration**: Perform all standard Git operations and advanced repository analysis
 - **Interactive prompting**: Enable Claude to engage users through structured prompts and forms
-- **GitHub authentication**: Securely authenticate with GitHub using personal access tokens
+- **GitHub authentication**: Securely authenticate with GitHub using personal access tokens or GitHub Apps
 - **JSON protocol**: Communicate with Claude Desktop, VSCode, and other AI-native tools using a standard interface
 
 ## 🛠️ Core Components Architecture
@@ -47,9 +47,13 @@ graph TD
     GitTools --> BasicGit[Basic Git]
     GitTools --> AdvancedGit[Advanced Git]
     GitTools --> GitAnalysis[Repository Analysis]
+    GitTools --> GitAuth[GitHub Authentication]
     
     PromptHelpers --> Templates[Prompt Templates]
     PromptHelpers --> Interactive[Interactive Tools]
+    
+    GitAuth --> PAT[Personal Access Token]
+    GitAuth --> GitHubApp[GitHub App]
 ```
 
 ## 💻 Installation & Quick Start
@@ -70,10 +74,23 @@ docker run -i --rm \
 
 ### With GitHub Authentication
 
+#### Using Personal Access Token
+
 ```bash
 docker run -i --rm \
   -v C:\\Users\\username:/mnt/workspace:rw \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here \
+  fastfs-mcp
+```
+
+#### Using GitHub App
+
+```bash
+docker run -i --rm \
+  -v C:\\Users\\username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)" \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
   fastfs-mcp
 ```
 
@@ -96,6 +113,8 @@ docker run -i --rm \
 
 ### With GitHub Authentication
 
+#### Using Personal Access Token
+
 ```json
 {
   "mcpServers": {
@@ -109,6 +128,31 @@ docker run -i --rm \
       ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_your_token_here"
+      }
+    }
+  }
+}
+```
+
+#### Using GitHub App
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", 
+        "-e", "GITHUB_APP_ID",
+        "-e", "GITHUB_APP_PRIVATE_KEY",
+        "-e", "GITHUB_APP_INSTALLATION_ID",
+        "-v", "C:\\Users\\username:/mnt/workspace:rw",
+        "fastfs-mcp"
+      ],
+      "env": {
+        "GITHUB_APP_ID": "your_app_id",
+        "GITHUB_APP_PRIVATE_KEY": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "GITHUB_APP_INSTALLATION_ID": "your_installation_id"
       }
     }
   }
@@ -132,6 +176,10 @@ graph TD
     
     Git --> BasicGit[Basic Commands]
     Git --> AdvancedGit[Advanced Analysis]
+    Git --> GitHubAuth[GitHub Authentication]
+    
+    GitHubAuth --> PAT[Personal Access Token]
+    GitHubAuth --> GitHubApp[GitHub App]
     
     Prompts --> Templates[Prompt Templates]
     Prompts --> Interactive[Interactive Tools]
@@ -219,6 +267,7 @@ graph TD
     Git --> Branch[Branch Operations]
     Git --> Remote[Remote Operations]
     Git --> Analysis[Repository Analysis]
+    Git --> Auth[GitHub Authentication]
     
     Repo --> init[Initialize Repository]
     Repo --> clone[Clone Repository]
@@ -240,6 +289,9 @@ graph TD
     Analysis --> validate[Validate Repository]
     Analysis --> suggest[Suggest Commit Messages]
     Analysis --> audit[Audit Repository History]
+    
+    Auth --> PAT[Personal Access Token]
+    Auth --> GitHubApp[GitHub App]
 ```
 
 ### Basic Git Operations
@@ -441,7 +493,9 @@ FastFS-MCP uses a simple JSON-based protocol to communicate with Claude and othe
 
 ## 🔧 GitHub Authentication
 
-FastFS-MCP supports GitHub authentication using a Personal Access Token (PAT) to enable secure Git operations with GitHub repositories.
+FastFS-MCP supports two methods of GitHub authentication to enable secure Git operations with GitHub repositories:
+
+### Personal Access Token (PAT) Authentication
 
 ```mermaid
 sequenceDiagram
@@ -462,6 +516,35 @@ When a GitHub PAT is provided via the `GITHUB_PERSONAL_ACCESS_TOKEN` environment
 - Access to private repositories
 - Operations that require authentication (push, create repo, etc.)
 - Avoiding rate limits on API calls
+
+### GitHub App Authentication
+
+```mermaid
+sequenceDiagram
+    participant Claude
+    participant FastFS
+    participant GitHub
+    
+    Claude->>FastFS: git_clone(private_repo_url)
+    FastFS->>FastFS: Generate JWT using private key
+    FastFS->>GitHub: Request installation token with JWT
+    GitHub-->>FastFS: Installation token
+    FastFS->>GitHub: Clone repository with installation token
+    GitHub-->>FastFS: Repository content
+    FastFS-->>Claude: Clone successful
+```
+
+GitHub App authentication provides more granular permissions and better security compared to Personal Access Tokens:
+
+- **Fine-grained permissions**: GitHub Apps can be configured with specific permissions
+- **Repository-specific access**: GitHub Apps can be installed on specific repositories
+- **Organization-level control**: Organization admins can control which apps are installed
+- **Automatic token refresh**: Installation tokens expire after 1 hour and are automatically refreshed
+
+To use GitHub App authentication, provide the following environment variables:
+- `GITHUB_APP_ID`: Your GitHub App's ID
+- `GITHUB_APP_PRIVATE_KEY`: The private key for your GitHub App (PEM format)
+- `GITHUB_APP_INSTALLATION_ID`: (Optional) The installation ID to use (if not provided, FastFS-MCP will attempt to use the first installation)
 
 ## 🐳 Docker Environment
 
@@ -490,8 +573,9 @@ FastFS-MCP provides direct access to your filesystem and Git repositories. Consi
 
 1. Only run FastFS-MCP with appropriate file system permissions
 2. Mount only the directories you need to expose to Claude
-3. Use separate GitHub PATs with limited scope for authentication
+3. Use separate GitHub PATs with limited scope for authentication, or prefer GitHub Apps for better security
 4. Regularly review the logs and commands executed by the server
+5. For GitHub Apps, store the private key securely and use installation-specific tokens
 
 ## 📄 License
 
