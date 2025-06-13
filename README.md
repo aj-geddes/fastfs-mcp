@@ -2,7 +2,7 @@
 
 <img src="https://img.shields.io/badge/Version-2.8.0-blue" alt="Version" /> <img src="https://img.shields.io/badge/License-MIT-green" alt="License" /> <img src="https://img.shields.io/badge/Docker-Ready-informational" alt="Docker Ready" />
 
-A high-speed MCP (Machine Capability Protocol) server for filesystem operations, Git integration, and interactive prompting capabilities, designed to work seamlessly with Claude and AI-native tooling.
+A high-speed MCP (Model Context Protocol) server for filesystem operations, Git integration, and interactive prompting capabilities, designed to work seamlessly with Claude and AI-native tooling.
 
 ## 🚀 Overview
 
