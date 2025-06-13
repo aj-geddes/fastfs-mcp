@@ -963,7 +963,7 @@ def context(options: str = "--all") -> Dict[str, Any]:
     return git_context(options)
 
 @mcp.tool(description="Show the current HEAD commit information.")
-def head(options: str = "") -> str:
+def git_show_head(options: str = "") -> str:
     """Show the current HEAD commit information."""
     return git_head(options)
 
