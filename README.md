@@ -9,6 +9,7 @@ A high-speed MCP (Model Context Protocol) server for filesystem operations, Git 
 FastFS-MCP enables AI assistants like Claude to interact with your local filesystem, manage Git repositories, and provide interactive experiences through a standardized JSON-based protocol. Whether you're building AI-assisted development workflows, creating content with Claude, or automating file management tasks, FastFS-MCP provides the bridge between your AI assistant and your local environment.
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Claude[Claude AI Assistant] <-->|JSON Protocol| MCP[FastFS-MCP Server]
     MCP <-->|File Operations| FS[Local Filesystem]
@@ -27,12 +28,13 @@ graph TD
 - **Ultra-fast filesystem operations**: Access, modify, and manage files with minimal latency
 - **Complete Git integration**: Perform all standard Git operations and advanced repository analysis
 - **Interactive prompting**: Enable Claude to engage users through structured prompts and forms
-- **GitHub authentication**: Securely authenticate with GitHub using personal access tokens
+- **GitHub authentication**: Securely authenticate with GitHub using personal access tokens or GitHub Apps
 - **JSON protocol**: Communicate with Claude Desktop, VSCode, and other AI-native tools using a standard interface
 
 ## 🛠️ Core Components Architecture
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Server[server.py] --> FastMCP[FastMCP Class]
     Server --> FileOps[Filesystem Operations]
@@ -47,9 +49,15 @@ graph TD
     GitTools --> BasicGit[Basic Git]
     GitTools --> AdvancedGit[Advanced Git]
     GitTools --> GitAnalysis[Repository Analysis]
+    GitTools --> GitAuth[GitHub Authentication]
     
     PromptHelpers --> Templates[Prompt Templates]
     PromptHelpers --> Interactive[Interactive Tools]
+    
+    GitAuth --> PAT[Personal Access Token]
+    GitAuth --> GitHubApp[GitHub App]
+    GitHubApp --> DirectKey[Direct Key]
+    GitHubApp --> KeyFromFile[Key from File]
 ```
 
 ## 💻 Installation & Quick Start
@@ -70,10 +78,38 @@ docker run -i --rm \
 
 ### With GitHub Authentication
 
+#### Using Personal Access Token
+
 ```bash
 docker run -i --rm \
   -v C:\\Users\\username:/mnt/workspace:rw \
   -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here \
+  fastfs-mcp
+```
+
+#### Using GitHub App (Option 1: Private Key as Environment Variable)
+
+```bash
+docker run -i --rm \
+  -v C:\\Users\\username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)" \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
+  fastfs-mcp
+```
+
+#### Using GitHub App (Option 2: Private Key from File in Workspace)
+
+```bash
+# First, copy your private key to the workspace
+cp path/to/private-key.pem C:\\Users\\username\\github-app-key.pem
+
+# Then run with the path to the private key
+docker run -i --rm \
+  -v C:\\Users\\username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY_PATH=/mnt/workspace/github-app-key.pem \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
   fastfs-mcp
 ```
 
@@ -96,6 +132,8 @@ docker run -i --rm \
 
 ### With GitHub Authentication
 
+#### Using Personal Access Token
+
 ```json
 {
   "mcpServers": {
@@ -115,11 +153,62 @@ docker run -i --rm \
 }
 ```
 
+#### Using GitHub App with Private Key as Environment Variable
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", 
+        "-e", "GITHUB_APP_ID",
+        "-e", "GITHUB_APP_PRIVATE_KEY",
+        "-e", "GITHUB_APP_INSTALLATION_ID",
+        "-v", "C:\\Users\\username:/mnt/workspace:rw",
+        "fastfs-mcp"
+      ],
+      "env": {
+        "GITHUB_APP_ID": "your_app_id",
+        "GITHUB_APP_PRIVATE_KEY": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "GITHUB_APP_INSTALLATION_ID": "your_installation_id"
+      }
+    }
+  }
+}
+```
+
+#### Using GitHub App with Private Key from File
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", 
+        "-e", "GITHUB_APP_ID",
+        "-e", "GITHUB_APP_PRIVATE_KEY_PATH",
+        "-e", "GITHUB_APP_INSTALLATION_ID",
+        "-v", "C:\\Users\\username:/mnt/workspace:rw",
+        "fastfs-mcp"
+      ],
+      "env": {
+        "GITHUB_APP_ID": "your_app_id",
+        "GITHUB_APP_PRIVATE_KEY_PATH": "/mnt/workspace/github-app-key.pem",
+        "GITHUB_APP_INSTALLATION_ID": "your_installation_id"
+      }
+    }
+  }
+}
+```
+
 ## 📋 Tool Categories
 
 FastFS-MCP provides a comprehensive set of tools organized into logical categories:
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     MCP[FastFS-MCP] --> FS[Filesystem Operations]
     MCP --> Git[Git Operations]
@@ -132,6 +221,10 @@ graph TD
     
     Git --> BasicGit[Basic Commands]
     Git --> AdvancedGit[Advanced Analysis]
+    Git --> GitHubAuth[GitHub Authentication]
+    
+    GitHubAuth --> PAT[Personal Access Token]
+    GitHubAuth --> GitHubApp[GitHub App]
     
     Prompts --> Templates[Prompt Templates]
     Prompts --> Interactive[Interactive Tools]
@@ -149,6 +242,7 @@ graph TD
 ### Basic Operations
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph LR
     ls[ls] --> list[List files and directories]
     cd[cd] --> change[Change current directory]
@@ -213,12 +307,14 @@ graph LR
 ## 🌿 Git Operations
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Git[Git Operations] --> Repo[Repository Management]
     Git --> Changes[Change Management]
     Git --> Branch[Branch Operations]
     Git --> Remote[Remote Operations]
     Git --> Analysis[Repository Analysis]
+    Git --> Auth[GitHub Authentication]
     
     Repo --> init[Initialize Repository]
     Repo --> clone[Clone Repository]
@@ -240,6 +336,9 @@ graph TD
     Analysis --> validate[Validate Repository]
     Analysis --> suggest[Suggest Commit Messages]
     Analysis --> audit[Audit Repository History]
+    
+    Auth --> PAT[Personal Access Token]
+    Auth --> GitHubApp[GitHub App]
 ```
 
 ### Basic Git Operations
@@ -282,6 +381,7 @@ graph TD
 ## 🤝 Interactive Prompts
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Prompts[Interactive Prompts] --> Templates[Prompt Templates]
     Prompts --> Operations[Prompt Operations]
@@ -441,9 +541,12 @@ FastFS-MCP uses a simple JSON-based protocol to communicate with Claude and othe
 
 ## 🔧 GitHub Authentication
 
-FastFS-MCP supports GitHub authentication using a Personal Access Token (PAT) to enable secure Git operations with GitHub repositories.
+FastFS-MCP supports two methods of GitHub authentication to enable secure Git operations with GitHub repositories:
+
+### Personal Access Token (PAT) Authentication
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 sequenceDiagram
     participant Claude
     participant FastFS
@@ -462,6 +565,56 @@ When a GitHub PAT is provided via the `GITHUB_PERSONAL_ACCESS_TOKEN` environment
 - Access to private repositories
 - Operations that require authentication (push, create repo, etc.)
 - Avoiding rate limits on API calls
+
+### GitHub App Authentication
+
+```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
+sequenceDiagram
+    participant Claude
+    participant FastFS
+    participant GitHub
+    
+    Claude->>FastFS: git_clone(private_repo_url)
+    FastFS->>FastFS: Generate JWT using private key
+    FastFS->>GitHub: Request installation token with JWT
+    GitHub-->>FastFS: Installation token
+    FastFS->>GitHub: Clone repository with installation token
+    GitHub-->>FastFS: Repository content
+    FastFS-->>Claude: Clone successful
+```
+
+GitHub App authentication provides more granular permissions and better security compared to Personal Access Tokens:
+
+- **Fine-grained permissions**: GitHub Apps can be configured with specific permissions
+- **Repository-specific access**: GitHub Apps can be installed on specific repositories
+- **Organization-level control**: Organization admins can control which apps are installed
+- **Automatic token refresh**: Installation tokens expire after 1 hour and are automatically refreshed
+
+To use GitHub App authentication, provide the following environment variables:
+
+- `GITHUB_APP_ID`: Your GitHub App's ID
+
+And one of these options for the private key:
+
+- `GITHUB_APP_PRIVATE_KEY`: The private key content for your GitHub App (PEM format) as an environment variable
+- `GITHUB_APP_PRIVATE_KEY_PATH`: Path to a file containing the private key (PEM format)
+
+Optionally:
+- `GITHUB_APP_INSTALLATION_ID`: The specific installation ID to use (if not provided, FastFS-MCP will attempt to use the first installation)
+
+#### Security Considerations for Private Keys
+
+When using GitHub App authentication, consider these security practices for managing private keys:
+
+1. **File-based private key** (recommended): 
+   - Store your private key in your workspace and use `GITHUB_APP_PRIVATE_KEY_PATH`
+   - Ensure proper file permissions (chmod 600) on the private key file
+   - This approach avoids having the key in process environment variables or shell history
+
+2. **Environment variable private key**:
+   - Use this for development or when you can't mount a file
+   - Be aware that environment variables can be visible in process lists on some systems
 
 ## 🐳 Docker Environment
 
@@ -490,8 +643,10 @@ FastFS-MCP provides direct access to your filesystem and Git repositories. Consi
 
 1. Only run FastFS-MCP with appropriate file system permissions
 2. Mount only the directories you need to expose to Claude
-3. Use separate GitHub PATs with limited scope for authentication
+3. Use separate GitHub PATs with limited scope for authentication, or prefer GitHub Apps for better security
 4. Regularly review the logs and commands executed by the server
+5. For GitHub Apps, store the private key securely and use installation-specific tokens
+6. When using GitHub App authentication, prefer file-based private keys over environment variables when possible
 
 ## 📄 License
 
@@ -512,6 +667,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [Prompt Guide](prompt_guide.md) - Detailed documentation on interactive prompts
 - [Claude Prompt Examples](claude_prompt_examples.md) - Examples of how Claude can use FastFS-MCP
 - [Claude Prompt Guide](claude_prompt_guide.md) - Guide for Claude on working with FastFS-MCP
+
+<!-- These stylish mermaid diagrams use a hand-drawn theme to enhance visual appeal. The dark theme with hand-drawn styling makes them more readable and engaging for users. -->
 
 ---
 
