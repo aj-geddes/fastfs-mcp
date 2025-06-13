@@ -54,6 +54,8 @@ graph TD
     
     GitAuth --> PAT[Personal Access Token]
     GitAuth --> GitHubApp[GitHub App]
+    GitHubApp --> DirectKey[Direct Key]
+    GitHubApp --> KeyFromFile[Key from File]
 ```
 
 ## 💻 Installation & Quick Start
@@ -83,13 +85,28 @@ docker run -i --rm \
   fastfs-mcp
 ```
 
-#### Using GitHub App
+#### Using GitHub App (Option 1: Private Key as Environment Variable)
 
 ```bash
 docker run -i --rm \
   -v C:\\Users\\username:/mnt/workspace:rw \
   -e GITHUB_APP_ID=your_app_id \
   -e GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)" \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
+  fastfs-mcp
+```
+
+#### Using GitHub App (Option 2: Private Key from File in Workspace)
+
+```bash
+# First, copy your private key to the workspace
+cp path/to/private-key.pem C:\\Users\\username\\github-app-key.pem
+
+# Then run with the path to the private key
+docker run -i --rm \
+  -v C:\\Users\\username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY_PATH=/mnt/workspace/github-app-key.pem \
   -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
   fastfs-mcp
 ```
@@ -134,7 +151,7 @@ docker run -i --rm \
 }
 ```
 
-#### Using GitHub App
+#### Using GitHub App with Private Key as Environment Variable
 
 ```json
 {
@@ -152,6 +169,31 @@ docker run -i --rm \
       "env": {
         "GITHUB_APP_ID": "your_app_id",
         "GITHUB_APP_PRIVATE_KEY": "-----BEGIN RSA PRIVATE KEY-----\n...\n-----END RSA PRIVATE KEY-----",
+        "GITHUB_APP_INSTALLATION_ID": "your_installation_id"
+      }
+    }
+  }
+}
+```
+
+#### Using GitHub App with Private Key from File
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm", 
+        "-e", "GITHUB_APP_ID",
+        "-e", "GITHUB_APP_PRIVATE_KEY_PATH",
+        "-e", "GITHUB_APP_INSTALLATION_ID",
+        "-v", "C:\\Users\\username:/mnt/workspace:rw",
+        "fastfs-mcp"
+      ],
+      "env": {
+        "GITHUB_APP_ID": "your_app_id",
+        "GITHUB_APP_PRIVATE_KEY_PATH": "/mnt/workspace/github-app-key.pem",
         "GITHUB_APP_INSTALLATION_ID": "your_installation_id"
       }
     }
@@ -542,9 +584,29 @@ GitHub App authentication provides more granular permissions and better security
 - **Automatic token refresh**: Installation tokens expire after 1 hour and are automatically refreshed
 
 To use GitHub App authentication, provide the following environment variables:
+
 - `GITHUB_APP_ID`: Your GitHub App's ID
-- `GITHUB_APP_PRIVATE_KEY`: The private key for your GitHub App (PEM format)
-- `GITHUB_APP_INSTALLATION_ID`: (Optional) The installation ID to use (if not provided, FastFS-MCP will attempt to use the first installation)
+
+And one of these options for the private key:
+
+- `GITHUB_APP_PRIVATE_KEY`: The private key content for your GitHub App (PEM format) as an environment variable
+- `GITHUB_APP_PRIVATE_KEY_PATH`: Path to a file containing the private key (PEM format)
+
+Optionally:
+- `GITHUB_APP_INSTALLATION_ID`: The specific installation ID to use (if not provided, FastFS-MCP will attempt to use the first installation)
+
+#### Security Considerations for Private Keys
+
+When using GitHub App authentication, consider these security practices for managing private keys:
+
+1. **File-based private key** (recommended): 
+   - Store your private key in your workspace and use `GITHUB_APP_PRIVATE_KEY_PATH`
+   - Ensure proper file permissions (chmod 600) on the private key file
+   - This approach avoids having the key in process environment variables or shell history
+
+2. **Environment variable private key**:
+   - Use this for development or when you can't mount a file
+   - Be aware that environment variables can be visible in process lists on some systems
 
 ## 🐳 Docker Environment
 
@@ -576,6 +638,7 @@ FastFS-MCP provides direct access to your filesystem and Git repositories. Consi
 3. Use separate GitHub PATs with limited scope for authentication, or prefer GitHub Apps for better security
 4. Regularly review the logs and commands executed by the server
 5. For GitHub Apps, store the private key securely and use installation-specific tokens
+6. When using GitHub App authentication, prefer file-based private keys over environment variables when possible
 
 ## 📄 License
 

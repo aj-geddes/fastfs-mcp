@@ -19,6 +19,7 @@ from datetime import datetime, timedelta
 GITHUB_PAT = os.environ.get('GITHUB_PERSONAL_ACCESS_TOKEN')
 GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID')
 GITHUB_APP_PRIVATE_KEY = os.environ.get('GITHUB_APP_PRIVATE_KEY')
+GITHUB_APP_PRIVATE_KEY_PATH = os.environ.get('GITHUB_APP_PRIVATE_KEY_PATH')
 GITHUB_APP_INSTALLATION_ID = os.environ.get('GITHUB_APP_INSTALLATION_ID')
 
 # Configure Git to use GitHub authentication if available
@@ -35,8 +36,34 @@ if GITHUB_PAT:
         print("[INFO] GitHub Personal Access Token detected. Git configured for authentication.", file=sys.stderr, flush=True)
     except Exception as e:
         print(f"[WARNING] Failed to configure Git credential helper: {str(e)}", file=sys.stderr, flush=True)
-elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+elif GITHUB_APP_ID and (GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH):
     print("[INFO] GitHub App credentials detected. GitHub App authentication will be used.", file=sys.stderr, flush=True)
+    if GITHUB_APP_PRIVATE_KEY_PATH:
+        print(f"[INFO] Using GitHub App private key from path: {GITHUB_APP_PRIVATE_KEY_PATH}", file=sys.stderr, flush=True)
+
+def get_private_key() -> str:
+    """
+    Get the GitHub App private key from either the environment variable or the specified file path.
+    
+    Returns:
+        The private key as a string
+    """
+    if GITHUB_APP_PRIVATE_KEY:
+        # Use the key directly from the environment variable
+        private_key = GITHUB_APP_PRIVATE_KEY
+    elif GITHUB_APP_PRIVATE_KEY_PATH:
+        # Read the key from the specified file
+        try:
+            with open(GITHUB_APP_PRIVATE_KEY_PATH, 'r') as key_file:
+                private_key = key_file.read()
+            print(f"[INFO] Successfully read private key from {GITHUB_APP_PRIVATE_KEY_PATH}", file=sys.stderr, flush=True)
+        except Exception as e:
+            raise ValueError(f"Failed to read private key from {GITHUB_APP_PRIVATE_KEY_PATH}: {str(e)}")
+    else:
+        raise ValueError("No GitHub App private key available. Set either GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH")
+    
+    # Fix newlines if needed
+    return private_key.replace('\\n', '\n')
 
 # GitHub App authentication functions
 def generate_jwt() -> str:
@@ -46,8 +73,8 @@ def generate_jwt() -> str:
     Returns:
         A JWT token string for GitHub App authentication
     """
-    if not GITHUB_APP_ID or not GITHUB_APP_PRIVATE_KEY:
-        raise ValueError("GitHub App ID and private key must be set in environment variables")
+    if not GITHUB_APP_ID:
+        raise ValueError("GitHub App ID must be set in environment variables")
     
     # Create JWT payload with expiration time (10 minutes maximum)
     now = int(time.time())
@@ -57,8 +84,8 @@ def generate_jwt() -> str:
         "iss": GITHUB_APP_ID  # GitHub App's identifier
     }
     
-    # Sign the JWT with the private key
-    private_key = GITHUB_APP_PRIVATE_KEY.replace('\\n', '\n')  # Fix newlines if needed
+    # Get the private key and sign the JWT
+    private_key = get_private_key()
     token = jwt.encode(payload, private_key, algorithm="RS256")
     
     # If token is bytes, decode to string (depends on jwt library version)
@@ -152,7 +179,7 @@ def run_git_command(command: str, cwd: Optional[str] = None) -> Tuple[bool, str]
                 # Use Personal Access Token
                 env['GIT_ASKPASS'] = 'echo'
                 env['GIT_TERMINAL_PROMPT'] = '0'
-            elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+            elif GITHUB_APP_ID and (GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH):
                 # Use GitHub App authentication
                 success, token = get_installation_token()
                 if success:
@@ -217,7 +244,7 @@ def transform_github_url(url: str) -> str:
         if GITHUB_PAT:
             # Use Personal Access Token
             return url.replace("https://", f"https://{GITHUB_PAT}:x-oauth-basic@")
-        elif GITHUB_APP_ID and GITHUB_APP_PRIVATE_KEY:
+        elif GITHUB_APP_ID and (GITHUB_APP_PRIVATE_KEY or GITHUB_APP_PRIVATE_KEY_PATH):
             # Use GitHub App authentication
             success, token = get_installation_token()
             if success:
