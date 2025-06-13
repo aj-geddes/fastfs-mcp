@@ -18,6 +18,7 @@ This document outlines the changes made to restructure the FastFS-MCP codebase, 
 
 3. **Docker Setup**
    - Unified multiple Dockerfiles into a single `Dockerfile`
+   - Added custom build for libgit2 v1.7.2 to ensure compatibility with pygit2 v1.13.0
    - Created a simple build script (`build_fastfs_mcp.sh`) to build and test the Docker image
    - Included test scripts in the Docker image for validation
 
@@ -59,12 +60,19 @@ fastfs-mcp/
     └── test_prompts.py
 ```
 
+## Docker Build Notes
+
+The Dockerfile now includes a custom build of libgit2 v1.7.2 from source to ensure compatibility with pygit2 v1.13.0. This is necessary because the version of libgit2 available in the default Debian repositories is not compatible with our version of pygit2.
+
+The build process may take a few minutes as it compiles libgit2 from source. This is a one-time cost that ensures proper functionality of the PyGit2 integration.
+
 ## How to Use
 
 1. **Build the Docker Image**
    ```bash
    ./build_fastfs_mcp.sh
    ```
+   Note: The first build will take longer due to compiling libgit2 from source.
 
 2. **Run the Server**
    ```bash

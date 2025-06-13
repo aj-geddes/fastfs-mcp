@@ -13,6 +13,7 @@ section() {
 }
 
 section "Building Docker image for FastFS-MCP with PyGit2"
+echo "This build process includes compiling libgit2 v1.7.2 from source and may take a few minutes..."
 docker build -t ${IMAGE_NAME} -f ${DOCKER_FILE} .
 
 section "Testing package structure"
