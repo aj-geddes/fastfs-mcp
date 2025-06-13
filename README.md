@@ -9,6 +9,7 @@ A high-speed MCP (Model Context Protocol) server for filesystem operations, Git 
 FastFS-MCP enables AI assistants like Claude to interact with your local filesystem, manage Git repositories, and provide interactive experiences through a standardized JSON-based protocol. Whether you're building AI-assisted development workflows, creating content with Claude, or automating file management tasks, FastFS-MCP provides the bridge between your AI assistant and your local environment.
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Claude[Claude AI Assistant] <-->|JSON Protocol| MCP[FastFS-MCP Server]
     MCP <-->|File Operations| FS[Local Filesystem]
@@ -33,6 +34,7 @@ graph TD
 ## 🛠️ Core Components Architecture
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Server[server.py] --> FastMCP[FastMCP Class]
     Server --> FileOps[Filesystem Operations]
@@ -206,6 +208,7 @@ docker run -i --rm \
 FastFS-MCP provides a comprehensive set of tools organized into logical categories:
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     MCP[FastFS-MCP] --> FS[Filesystem Operations]
     MCP --> Git[Git Operations]
@@ -239,6 +242,7 @@ graph TD
 ### Basic Operations
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph LR
     ls[ls] --> list[List files and directories]
     cd[cd] --> change[Change current directory]
@@ -303,6 +307,7 @@ graph LR
 ## 🌿 Git Operations
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Git[Git Operations] --> Repo[Repository Management]
     Git --> Changes[Change Management]
@@ -376,6 +381,7 @@ graph TD
 ## 🤝 Interactive Prompts
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 graph TD
     Prompts[Interactive Prompts] --> Templates[Prompt Templates]
     Prompts --> Operations[Prompt Operations]
@@ -540,6 +546,7 @@ FastFS-MCP supports two methods of GitHub authentication to enable secure Git op
 ### Personal Access Token (PAT) Authentication
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 sequenceDiagram
     participant Claude
     participant FastFS
@@ -562,6 +569,7 @@ When a GitHub PAT is provided via the `GITHUB_PERSONAL_ACCESS_TOKEN` environment
 ### GitHub App Authentication
 
 ```mermaid
+%%{ init: { "theme": "dark", "look": "handDrawn", "themeVariables": { "handDrawn": true } } }%%
 sequenceDiagram
     participant Claude
     participant FastFS
