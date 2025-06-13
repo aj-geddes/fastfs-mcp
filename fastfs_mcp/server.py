@@ -36,8 +36,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger("fastfs-mcp-pygit2")
 
-# Create FastMCP server
-mcp = fastmcp.FastMCP(name="fastfs-mcp-pygit2", version="1.0.0")
+# Create FastMCP server - we removed the version parameter
+mcp = fastmcp.FastMCP(name="fastfs-mcp-pygit2")
 
 # Create PyGit2 integration
 pygit2_mcp = PyGit2MCP()
