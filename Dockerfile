@@ -50,9 +50,11 @@ WORKDIR /app
 COPY fastfs_mcp /app/fastfs_mcp
 COPY tests /app/tests
 COPY requirements.txt /app/requirements.txt
+COPY setup.py /app/setup.py
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies and the package in development mode
+RUN pip install --no-cache-dir -r requirements.txt && \
+    pip install -e .
 
 # Make server executable
 RUN chmod +x /app/fastfs_mcp/server.py

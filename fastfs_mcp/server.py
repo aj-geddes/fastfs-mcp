@@ -43,7 +43,6 @@ mcp = fastmcp.FastMCP(name="fastfs-mcp-pygit2", version="1.0.0")
 pygit2_mcp = PyGit2MCP()
 
 # Define MCP tools using PyGit2 implementation
-# ... (rest of the file remains the same)
 
 @mcp.tool()
 async def init(directory: str = ".", bare: bool = False, initial_commit: bool = False) -> Dict[str, Any]:
@@ -142,7 +141,8 @@ async def add(paths: Union[str, List[str]], path: str = None) -> Dict[str, Any]:
 
 # ... (all other tool definitions remain the same)
 
-if __name__ == "__main__":
+def main():
+    """Main function to run the server."""
     try:
         # Register signal handlers for graceful shutdown
         def handle_signal(signum, frame):
@@ -163,3 +163,6 @@ if __name__ == "__main__":
         import traceback
         traceback.print_exc(file=sys.stderr)
         sys.exit(1)
+
+if __name__ == "__main__":
+    main()
