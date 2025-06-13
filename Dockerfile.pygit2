@@ -1,0 +1,47 @@
+FROM python:3.12-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+
+# Install essential filesystem tools, Git and dependencies for PyGit2
+RUN apt-get update && apt-get install -y \
+    ripgrep \
+    grep \
+    jq \
+    sed \
+    gawk \
+    fd-find \
+    tree \
+    coreutils \
+    zip \
+    unzip \
+    gzip \
+    xz-utils \
+    git \
+    libgit2-dev \
+    pkg-config \
+    libssl-dev \
+    libffi-dev \
+    cmake \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Create workspace directory for mounting local filesystem
+RUN mkdir -p /mnt/workspace
+
+# Set up application
+WORKDIR /app
+COPY server_pygit2.py /app/server.py
+COPY pygit2_tools.py /app/pygit2_tools.py
+COPY requirements.txt /app/requirements.txt
+
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Make server.py executable
+RUN chmod +x /app/server.py
+
+# Set working directory to the mounted workspace path
+WORKDIR /mnt/workspace
+
+# Run the server
+ENTRYPOINT ["python", "/app/server.py"]

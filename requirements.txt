@@ -1,3 +1,4 @@
 fastmcp==2.8.0
 PyJWT==2.8.0
 cryptography==41.0.4
+pygit2==1.13.0
