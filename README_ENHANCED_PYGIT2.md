@@ -2,7 +2,7 @@
 
 ## Overview
 
-This is a comprehensive implementation of Git tools for FastFS-MCP using PyGit2, a Python binding to the libgit2 shared library. PyGit2 provides faster, more reliable, and LLM-friendly Git operations compared to the shell-based implementation.
+This is an enhanced implementation of the Git tools for FastFS-MCP using PyGit2, a Python binding to the libgit2 shared library. PyGit2 provides faster, more reliable, and LLM-friendly Git operations compared to the shell-based implementation.
 
 ## Key Improvements
 
@@ -13,7 +13,7 @@ This is a comprehensive implementation of Git tools for FastFS-MCP using PyGit2,
 5. **Structured Output**: Well-structured responses that are easy to parse and understand
 6. **Advanced Features**: Better support for complex Git operations
 
-## Enhanced Features
+## Enhanced Features (New)
 
 The PyGit2 implementation now includes the following enhanced features:
 
@@ -22,9 +22,6 @@ The PyGit2 implementation now includes the following enhanced features:
 3. **Repository Health Checks**: Comprehensive health checks for Git repositories
 4. **Conflict Resolution**: Utilities for resolving merge conflicts programmatically
 5. **Documentation Generator**: Automatic generation of API documentation from code
-6. **Advanced Git Operations**: Support for rebasing, cherry-picking, worktree management, bisect, and more
-7. **Robust Error Handling**: Comprehensive error handling with recovery options
-8. **Enhanced SSH Support**: Improved SSH authentication with support for multiple keys and custom configurations
 
 ## Installation
 
@@ -32,7 +29,7 @@ This implementation requires additional dependencies compared to the standard Fa
 
 ```bash
 # Install libgit2 dependencies
-apt-get update && apt-get install -y libgit2-dev pkg-config libssl-dev libffi-dev cmake libssh2-1-dev
+apt-get update && apt-get install -y libgit2-dev pkg-config libssl-dev libffi-dev cmake
 
 # Install Python dependencies
 pip install pygit2==1.13.0 PyJWT==2.8.0 cryptography==41.0.4 fastmcp==2.8.0
@@ -147,53 +144,6 @@ auth = AuthenticationManager.create_remote_callbacks(
 )
 ```
 
-### Enhanced SSH Support
-
-The PyGit2 implementation now includes comprehensive SSH support:
-
-```python
-from ssh_support import SSHCredential, SSHConfig, SSHKeyManager
-
-# Create SSH credential from key files
-credential = SSHCredential(
-    username="git",
-    private_key_path="/path/to/private_key",
-    public_key_path="/path/to/public_key",
-    passphrase="optional_passphrase"
-)
-
-# Create SSH credential from key content
-credential = SSHCredential.from_key_content(
-    private_key_content="-----BEGIN OPENSSH PRIVATE KEY-----\n...",
-    public_key_content="ssh-rsa AAAA...",
-    username="git",
-    passphrase="optional_passphrase"
-)
-
-# Create SSH credential using SSH agent
-credential = SSHCredential.from_agent(username="git")
-
-# Create SSH credential using default SSH key
-credential = SSHCredential.from_default_key(username="git")
-
-# Create remote callbacks
-callbacks = credential.create_remote_callbacks()
-
-# Generate a new SSH key pair
-key_result = SSHKeyManager.generate_key(
-    key_type="ed25519",
-    comment="PyGit2 SSH Key",
-    passphrase="optional_passphrase"
-)
-
-# Test SSH connection
-test_result = SSHKeyManager.test_connection(
-    host="github.com",
-    username="git",
-    private_key_path=key_result["private_key_path"]
-)
-```
-
 ### Performance Metrics
 
 Enable timing information to track performance of Git operations:
@@ -277,102 +227,6 @@ result = ConflictResolver.resolve_conflict(
 print(result)
 ```
 
-### Error Handling and Recovery
-
-The PyGit2 implementation now includes robust error handling with recovery options:
-
-```python
-from git_error_handler import GitErrorHandler, GitRetry, GitRepair
-
-# Handle an error
-result = GitErrorHandler.handle_error(
-    error=Exception("Repository not found"),
-    operation="git_clone",
-    repository_path="/path/to/repo"
-)
-
-# Retry an operation
-result = GitRetry.retry(
-    func=git_clone,
-    max_retries=3,
-    delay=1.0,
-    backoff_factor=2.0,
-    repo_url="https://github.com/user/repo.git",
-    target_dir="repo"
-)
-
-# Repair a repository
-result = GitRepair.repair_repository("/path/to/repo")
-
-# Fix a corrupted index
-result = GitRepair.fix_corrupted_index("/path/to/repo")
-
-# Recover lost commits
-result = GitRepair.recover_lost_commits("/path/to/repo")
-```
-
-### Advanced Git Operations
-
-The PyGit2 implementation now supports advanced Git operations:
-
-```python
-from advanced_pygit2 import (
-    git_rebase, git_cherry_pick, git_worktree_add,
-    git_bisect_start, git_reflog, git_clean, git_archive
-)
-
-# Rebase
-result = git_rebase(
-    path="/path/to/repo",
-    upstream="origin/main",
-    branch="feature-branch"
-)
-
-# Cherry-pick
-result = git_cherry_pick(
-    path="/path/to/repo",
-    commit="abcdef123456"
-)
-
-# Add worktree
-result = git_worktree_add(
-    path="/path/to/repo",
-    worktree_path="/path/to/worktree",
-    branch="feature-branch",
-    create_branch=True
-)
-
-# Start bisect
-result = git_bisect_start(
-    path="/path/to/repo",
-    bad="HEAD",
-    good="v1.0"
-)
-
-# Get reflog
-result = git_reflog(
-    path="/path/to/repo",
-    max_count=10
-)
-
-# Clean untracked files
-result = git_clean(
-    path="/path/to/repo",
-    directories=True,
-    force=True,
-    dry_run=False
-)
-
-# Create archive
-result = git_archive(
-    path="/path/to/repo",
-    output_file="repo.tar.gz",
-    format="tar.gz",
-    prefix="repo/",
-    ref="HEAD"
-)
-```
-
 ### Documentation Generator
 
 Generate API documentation:
@@ -401,7 +255,7 @@ python test_enhanced_pygit2.py
 
 ## GitHub Authentication
 
-The PyGit2 implementation supports multiple authentication methods for GitHub:
+The PyGit2 implementation supports both Personal Access Token (PAT) and GitHub App authentication methods:
 
 ```bash
 # Using PAT
@@ -417,20 +271,13 @@ docker run -i --rm \
   -e GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)" \
   -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
   fastfs-mcp-pygit2
-
-# Using SSH key
-docker run -i --rm \
-  -v C:\\Users\\username:/mnt/workspace:rw \
-  -v C:\\Users\\username\\.ssh:/root/.ssh:ro \
-  fastfs-mcp-pygit2
 ```
 
 ## Troubleshooting
 
 - If you encounter issues with the PyGit2 implementation, you can enable debug mode by setting the `FASTFS_DEBUG` environment variable to `true`.
-- For authentication issues, make sure your token or SSH key is correctly configured.
+- For authentication issues, make sure your token or GitHub App credentials are correctly configured.
 - PyGit2 versions should match the installed libgit2 version. This implementation is tested with PyGit2 1.13.0.
-- For SSH issues, you can use the `SSHKeyManager.test_connection` function to test your SSH configuration.
 
 ## Performance Comparison
 
@@ -444,27 +291,8 @@ Internal benchmarks show significant performance improvements for common Git ope
 | Diff      | 1.0x        | 1.7x         | +70%        |
 | Commit    | 1.0x        | 1.5x         | +50%        |
 
-## Module Structure
+## Known Limitations
 
-The PyGit2 implementation is organized into the following modules:
-
-- `pygit2_tools.py`: Core PyGit2 implementation for basic Git operations
-- `enhanced_pygit2.py`: Enhanced features including authentication, performance metrics, and health checks
-- `advanced_pygit2.py`: Advanced Git operations like rebasing, cherry-picking, and bisect
-- `git_error_handler.py`: Error handling and recovery utilities
-- `ssh_support.py`: Enhanced SSH authentication support
-- `server_pygit2.py`: FastFS-MCP server implementation using PyGit2
-
-## Contributing
-
-Contributions to the PyGit2 implementation are welcome! Here are some areas that could use improvement:
-
-- Add support for more advanced Git operations
-- Improve error handling and recovery
-- Enhance SSH support for more complex authentication scenarios
-- Add more comprehensive tests
-- Optimize performance for large repositories
-
-## License
-
-This implementation is licensed under the same license as FastFS-MCP.
+- Some advanced Git operations that require authentication (like push and fetch) still use the git command line due to limitations in PyGit2's authentication handling.
+- PyGit2 does not support all Git features. Complex operations might still fall back to command-line Git in some cases.
+- SSH authentication requires libssh2 to be installed and properly configured.
