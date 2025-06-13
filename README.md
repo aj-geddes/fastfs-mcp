@@ -668,6 +668,8 @@ Contributions are welcome! Please feel free to submit a Pull Request.
 - [Claude Prompt Examples](claude_prompt_examples.md) - Examples of how Claude can use FastFS-MCP
 - [Claude Prompt Guide](claude_prompt_guide.md) - Guide for Claude on working with FastFS-MCP
 
+<!-- These stylish mermaid diagrams use a hand-drawn theme to enhance visual appeal. The dark theme with hand-drawn styling makes them more readable and engaging for users. -->
+
 ---
 
 Built for AI-enhanced CLI and developer workflows with speed, structure, and simplicity.
