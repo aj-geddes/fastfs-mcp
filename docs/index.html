@@ -1,0 +1,1063 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FastFS-MCP - High-Speed MCP Server for Filesystem & Git Operations</title>
+    <meta name="description" content="A high-speed MCP (Model Context Protocol) server for filesystem operations, Git integration, and interactive prompting capabilities.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --text-muted: #6e7681;
+            --accent-primary: #58a6ff;
+            --accent-secondary: #388bfd;
+            --accent-green: #3fb950;
+            --accent-purple: #a371f7;
+            --accent-orange: #d29922;
+            --border-color: #30363d;
+            --code-bg: #0d1117;
+            --shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        a {
+            color: var(--accent-primary);
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        code {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-tertiary);
+            padding: 0.2em 0.4em;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+
+        pre {
+            background: var(--code-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 1rem;
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        pre code {
+            background: none;
+            padding: 0;
+            font-size: 0.85rem;
+        }
+
+        /* Navigation */
+        nav {
+            position: fixed;
+            top: 0;
+            width: 100%;
+            background: rgba(13, 17, 23, 0.95);
+            backdrop-filter: blur(10px);
+            border-bottom: 1px solid var(--border-color);
+            z-index: 1000;
+            padding: 1rem 2rem;
+        }
+
+        .nav-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-logo {
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+        }
+
+        .nav-links {
+            display: flex;
+            gap: 2rem;
+            list-style: none;
+        }
+
+        .nav-links a {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            transition: color 0.2s;
+        }
+
+        .nav-links a:hover {
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        /* Hero Section */
+        .hero {
+            padding: 8rem 2rem 4rem;
+            text-align: center;
+            background: linear-gradient(180deg, var(--bg-secondary) 0%, var(--bg-primary) 100%);
+        }
+
+        .hero-content {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .hero h1 {
+            font-size: 3.5rem;
+            font-weight: 700;
+            margin-bottom: 1.5rem;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero p {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        .badges {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+
+        .badge {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge-version {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .badge-license {
+            background: var(--accent-green);
+            color: white;
+        }
+
+        .badge-docker {
+            background: var(--accent-purple);
+            color: white;
+        }
+
+        .cta-buttons {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+        }
+
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.2s;
+            cursor: pointer;
+            border: none;
+        }
+
+        .btn-primary {
+            background: var(--accent-primary);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-secondary);
+            text-decoration: none;
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border-color);
+            text-decoration: none;
+        }
+
+        /* Main Content */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        section {
+            padding: 4rem 0;
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+
+        h3 {
+            font-size: 1.5rem;
+            margin: 2rem 0 1rem;
+            color: var(--text-primary);
+        }
+
+        h4 {
+            font-size: 1.1rem;
+            margin: 1.5rem 0 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .section-subtitle {
+            color: var(--text-secondary);
+            margin-bottom: 2rem;
+        }
+
+        /* Features Grid */
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
+        .feature-icon {
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            margin: 0 0 0.5rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin: 0;
+        }
+
+        /* Tables */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: 1rem 0;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+
+        th, td {
+            padding: 0.75rem 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        th {
+            background: var(--bg-secondary);
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        td {
+            color: var(--text-secondary);
+        }
+
+        td code {
+            color: var(--accent-primary);
+        }
+
+        /* Cards */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin: 1rem 0;
+        }
+
+        .card h4 {
+            margin-top: 0;
+            color: var(--text-primary);
+        }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .tab {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            color: var(--text-secondary);
+            transition: all 0.2s;
+        }
+
+        .tab:hover {
+            color: var(--text-primary);
+        }
+
+        .tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Tool Categories */
+        .tool-category {
+            margin: 2rem 0;
+        }
+
+        .category-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .category-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .icon-fs { background: rgba(88, 166, 255, 0.2); }
+        .icon-git { background: rgba(63, 185, 80, 0.2); }
+        .icon-prompt { background: rgba(163, 113, 247, 0.2); }
+        .icon-archive { background: rgba(210, 153, 34, 0.2); }
+
+        /* Footer */
+        footer {
+            background: var(--bg-secondary);
+            border-top: 1px solid var(--border-color);
+            padding: 3rem 2rem;
+            margin-top: 4rem;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+        }
+
+        .footer-section h4 {
+            margin: 0 0 1rem;
+            color: var(--text-primary);
+        }
+
+        .footer-section ul {
+            list-style: none;
+        }
+
+        .footer-section li {
+            margin-bottom: 0.5rem;
+        }
+
+        .footer-section a {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+
+        .footer-section a:hover {
+            color: var(--accent-primary);
+        }
+
+        .footer-bottom {
+            max-width: 1200px;
+            margin: 2rem auto 0;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+            text-align: center;
+            color: var(--text-muted);
+            font-size: 0.85rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .nav-links {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 2.5rem;
+            }
+
+            .hero p {
+                font-size: 1rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+            }
+
+            .badges {
+                flex-wrap: wrap;
+            }
+        }
+
+        /* Scroll margin for anchor links */
+        [id] {
+            scroll-margin-top: 80px;
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="nav-content">
+            <div class="nav-logo">FastFS-MCP</div>
+            <ul class="nav-links">
+                <li><a href="#features">Features</a></li>
+                <li><a href="#installation">Installation</a></li>
+                <li><a href="#tools">Tools</a></li>
+                <li><a href="#authentication">Auth</a></li>
+                <li><a href="#api">API</a></li>
+                <li><a href="https://github.com/aj-geddes/fastfs-mcp">GitHub</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <header class="hero">
+        <div class="hero-content">
+            <div class="badges">
+                <span class="badge badge-version">v2.8.0</span>
+                <span class="badge badge-license">MIT</span>
+                <span class="badge badge-docker">Docker Ready</span>
+            </div>
+            <h1>FastFS-MCP</h1>
+            <p>A high-speed MCP (Model Context Protocol) server for filesystem operations, Git integration, and interactive prompting capabilities, designed to work seamlessly with Claude and AI-native tooling.</p>
+            <div class="cta-buttons">
+                <a href="#installation" class="btn btn-primary">Get Started</a>
+                <a href="https://github.com/aj-geddes/fastfs-mcp" class="btn btn-secondary">View on GitHub</a>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <!-- Overview Section -->
+        <section id="overview">
+            <h2>Overview</h2>
+            <p class="section-subtitle">FastFS-MCP enables AI assistants like Claude to interact with your local filesystem, manage Git repositories, and provide interactive experiences through a standardized JSON-based protocol.</p>
+
+            <div class="card">
+                <p>Whether you're building AI-assisted development workflows, creating content with Claude, or automating file management tasks, FastFS-MCP provides the bridge between your AI assistant and your local environment.</p>
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section id="features">
+            <h2>Key Features</h2>
+            <p class="section-subtitle">Everything you need for AI-powered filesystem and Git operations</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">&#9889;</div>
+                    <h3>Ultra-Fast Operations</h3>
+                    <p>Access, modify, and manage files with minimal latency using optimized filesystem operations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128736;</div>
+                    <h3>Complete Git Integration</h3>
+                    <p>Perform all standard Git operations and advanced repository analysis directly through the protocol.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128172;</div>
+                    <h3>Interactive Prompting</h3>
+                    <p>Enable Claude to engage users through structured prompts and forms for guided workflows.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128274;</div>
+                    <h3>GitHub Authentication</h3>
+                    <p>Securely authenticate with GitHub using personal access tokens or GitHub Apps.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128196;</div>
+                    <h3>JSON Protocol</h3>
+                    <p>Communicate with Claude Desktop, VSCode, and other AI-native tools using a standard interface.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128230;</div>
+                    <h3>Docker Ready</h3>
+                    <p>Run in isolated containers for portability and security with all tools pre-installed.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Installation Section -->
+        <section id="installation">
+            <h2>Installation</h2>
+            <p class="section-subtitle">Get FastFS-MCP running in minutes</p>
+
+            <h3>Docker Quick Start</h3>
+            <pre><code># Build the Docker image
+docker build -t fastfs-mcp .
+
+# Run with your local filesystem mounted
+docker run -i --rm \
+  -v /Users/username:/mnt/workspace:rw \
+  fastfs-mcp</code></pre>
+
+            <h3>Claude Desktop Configuration</h3>
+            <p>Add this to your Claude Desktop configuration file:</p>
+            <pre><code>{
+  "mcpServers": {
+    "filesystem": {
+      "command": "docker",
+      "args": [
+        "run", "-i", "--rm",
+        "-v", "/Users/username:/mnt/workspace:rw",
+        "fastfs-mcp"
+      ]
+    }
+  }
+}</code></pre>
+
+            <h3>With GitHub Personal Access Token</h3>
+            <pre><code>docker run -i --rm \
+  -v /Users/username:/mnt/workspace:rw \
+  -e GITHUB_PERSONAL_ACCESS_TOKEN=ghp_your_token_here \
+  fastfs-mcp</code></pre>
+
+            <h3>With GitHub App Authentication</h3>
+            <pre><code># Option 1: Private key as environment variable
+docker run -i --rm \
+  -v /Users/username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY="$(cat path/to/private-key.pem)" \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
+  fastfs-mcp
+
+# Option 2: Private key from file
+docker run -i --rm \
+  -v /Users/username:/mnt/workspace:rw \
+  -e GITHUB_APP_ID=your_app_id \
+  -e GITHUB_APP_PRIVATE_KEY_PATH=/mnt/workspace/github-app-key.pem \
+  -e GITHUB_APP_INSTALLATION_ID=your_installation_id \
+  fastfs-mcp</code></pre>
+        </section>
+
+        <!-- Tools Section -->
+        <section id="tools">
+            <h2>Available Tools</h2>
+            <p class="section-subtitle">Comprehensive toolset for filesystem, Git, and interactive operations</p>
+
+            <!-- Filesystem Operations -->
+            <div class="tool-category">
+                <div class="category-header">
+                    <div class="category-icon icon-fs">&#128193;</div>
+                    <h3>Filesystem Operations</h3>
+                </div>
+
+                <h4>Basic Operations</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>ls</code></td><td>List files in a directory</td></tr>
+                            <tr><td><code>cd</code></td><td>Change the current working directory</td></tr>
+                            <tr><td><code>pwd</code></td><td>Print the current working directory</td></tr>
+                            <tr><td><code>read</code></td><td>Read file contents</td></tr>
+                            <tr><td><code>write</code></td><td>Create or overwrite file content</td></tr>
+                            <tr><td><code>grep</code></td><td>Fast file searching via ripgrep</td></tr>
+                            <tr><td><code>which</code></td><td>Locate executables in PATH</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Advanced Operations</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>tree</code></td><td>Display directory structure</td></tr>
+                            <tr><td><code>find</code></td><td>Find files by pattern</td></tr>
+                            <tr><td><code>cp</code></td><td>Copy files or directories</td></tr>
+                            <tr><td><code>mv</code></td><td>Move or rename files</td></tr>
+                            <tr><td><code>rm</code></td><td>Remove files or directories</td></tr>
+                            <tr><td><code>mkdir</code></td><td>Create directories</td></tr>
+                            <tr><td><code>stat</code></td><td>Display file metadata</td></tr>
+                            <tr><td><code>chmod</code></td><td>Change file permissions</td></tr>
+                            <tr><td><code>du</code></td><td>Show disk usage</td></tr>
+                            <tr><td><code>df</code></td><td>Show disk space</td></tr>
+                            <tr><td><code>touch</code></td><td>Create a new empty file or update timestamp</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Text & File Processing</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>sed</code></td><td>Stream editor for text transformation</td></tr>
+                            <tr><td><code>gawk</code></td><td>Text processing with AWK</td></tr>
+                            <tr><td><code>head</code></td><td>Show first lines of a file</td></tr>
+                            <tr><td><code>tail</code></td><td>Show last lines of a file</td></tr>
+                            <tr><td><code>wc</code></td><td>Count lines, words, and bytes</td></tr>
+                            <tr><td><code>cut</code></td><td>Select columns from file</td></tr>
+                            <tr><td><code>sort</code></td><td>Sort lines of text files</td></tr>
+                            <tr><td><code>uniq</code></td><td>Report or filter repeated lines</td></tr>
+                            <tr><td><code>nl</code></td><td>Number lines in a file</td></tr>
+                            <tr><td><code>split</code></td><td>Split a file into smaller parts</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Archive & Compression</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>tar</code></td><td>Create/extract tar archives</td></tr>
+                            <tr><td><code>gzip</code></td><td>Compress/decompress files</td></tr>
+                            <tr><td><code>zip</code></td><td>Create/extract zip archives</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Git Operations -->
+            <div class="tool-category">
+                <div class="category-header">
+                    <div class="category-icon icon-git">&#128203;</div>
+                    <h3>Git Operations</h3>
+                </div>
+
+                <h4>Basic Git Operations</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>clone</code></td><td>Clone a Git repository</td></tr>
+                            <tr><td><code>init</code></td><td>Initialize a new Git repository</td></tr>
+                            <tr><td><code>add</code></td><td>Add file(s) to staging area</td></tr>
+                            <tr><td><code>commit</code></td><td>Commit changes to repository</td></tr>
+                            <tr><td><code>status</code></td><td>Show working tree status</td></tr>
+                            <tr><td><code>push</code></td><td>Push changes to remote repository</td></tr>
+                            <tr><td><code>pull</code></td><td>Pull changes from remote repository</td></tr>
+                            <tr><td><code>log</code></td><td>Show commit logs</td></tr>
+                            <tr><td><code>checkout</code></td><td>Switch branches or restore files</td></tr>
+                            <tr><td><code>branch</code></td><td>List, create, or delete branches</td></tr>
+                            <tr><td><code>merge</code></td><td>Join development histories together</td></tr>
+                            <tr><td><code>diff</code></td><td>Show changes between commits/working tree</td></tr>
+                            <tr><td><code>stash</code></td><td>Stash changes in working directory</td></tr>
+                            <tr><td><code>tag</code></td><td>Manage Git tags</td></tr>
+                            <tr><td><code>fetch</code></td><td>Download objects and refs from another repository</td></tr>
+                            <tr><td><code>blame</code></td><td>Show what revision and author last modified each line</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Advanced Git Analysis</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>context</code></td><td>Get comprehensive repo context</td></tr>
+                            <tr><td><code>repo_info</code></td><td>Get detailed repository information</td></tr>
+                            <tr><td><code>validate</code></td><td>Check repository for common issues</td></tr>
+                            <tr><td><code>summarize_log</code></td><td>Generate commit log statistics</td></tr>
+                            <tr><td><code>suggest_commit</code></td><td>Auto-suggest commit messages</td></tr>
+                            <tr><td><code>audit_history</code></td><td>Audit repository for security issues</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Interactive Prompts -->
+            <div class="tool-category">
+                <div class="category-header">
+                    <div class="category-icon icon-prompt">&#128172;</div>
+                    <h3>Interactive Prompts</h3>
+                </div>
+
+                <h4>Prompt Templates</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Template</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>confirm_file_overwrite</code></td><td>Ask user to confirm before overwriting an existing file</td></tr>
+                            <tr><td><code>confirm_directory_delete</code></td><td>Warn user before deleting a directory</td></tr>
+                            <tr><td><code>file_not_found_options</code></td><td>Provide options when a file is not found</td></tr>
+                            <tr><td><code>enter_file_content</code></td><td>Get content for a file from the user</td></tr>
+                            <tr><td><code>enter_search_pattern</code></td><td>Ask user for a search pattern</td></tr>
+                            <tr><td><code>project_initialization</code></td><td>Collect information to initialize a new project</td></tr>
+                            <tr><td><code>coding_task</code></td><td>Define parameters of a coding task</td></tr>
+                            <tr><td><code>select_file_from_list</code></td><td>Let user select a file from a list</td></tr>
+                            <tr><td><code>custom</code></td><td>Create a completely custom prompt message</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h4>Interactive Functions</h4>
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Function</th>
+                                <th>Description</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr><td><code>prompt</code></td><td>Send an interactive prompt to the user</td></tr>
+                            <tr><td><code>get_prompt_types</code></td><td>List available prompt templates</td></tr>
+                            <tr><td><code>interactive_write</code></td><td>Write file with user-provided content</td></tr>
+                            <tr><td><code>confirm_overwrite</code></td><td>Ask before overwriting files</td></tr>
+                            <tr><td><code>select_file</code></td><td>Let user choose from file list</td></tr>
+                            <tr><td><code>get_file_content</code></td><td>Get content for file from user</td></tr>
+                            <tr><td><code>init_project</code></td><td>Initialize project with guided setup</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Authentication Section -->
+        <section id="authentication">
+            <h2>GitHub Authentication</h2>
+            <p class="section-subtitle">Secure authentication options for GitHub operations</p>
+
+            <h3>Personal Access Token (PAT)</h3>
+            <p>When a GitHub PAT is provided via the <code>GITHUB_PERSONAL_ACCESS_TOKEN</code> environment variable, Git operations that interact with GitHub will automatically use the token for authentication, enabling:</p>
+            <ul style="margin: 1rem 0 1rem 1.5rem; color: var(--text-secondary);">
+                <li>Access to private repositories</li>
+                <li>Operations that require authentication (push, create repo, etc.)</li>
+                <li>Avoiding rate limits on API calls</li>
+            </ul>
+
+            <h3>GitHub App Authentication</h3>
+            <p>GitHub App authentication provides more granular permissions and better security compared to Personal Access Tokens:</p>
+            <ul style="margin: 1rem 0 1rem 1.5rem; color: var(--text-secondary);">
+                <li><strong>Fine-grained permissions</strong>: GitHub Apps can be configured with specific permissions</li>
+                <li><strong>Repository-specific access</strong>: GitHub Apps can be installed on specific repositories</li>
+                <li><strong>Organization-level control</strong>: Organization admins can control which apps are installed</li>
+                <li><strong>Automatic token refresh</strong>: Installation tokens expire after 1 hour and are automatically refreshed</li>
+            </ul>
+
+            <h4>Required Environment Variables</h4>
+            <div class="table-wrapper">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Variable</th>
+                            <th>Description</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr><td><code>GITHUB_APP_ID</code></td><td>Your GitHub App's ID</td></tr>
+                        <tr><td><code>GITHUB_APP_PRIVATE_KEY</code></td><td>Private key content (PEM format) - Option 1</td></tr>
+                        <tr><td><code>GITHUB_APP_PRIVATE_KEY_PATH</code></td><td>Path to private key file - Option 2</td></tr>
+                        <tr><td><code>GITHUB_APP_INSTALLATION_ID</code></td><td>Specific installation ID (optional)</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h4>Security Best Practices</h4>
+            <div class="card">
+                <p><strong>File-based private key (recommended):</strong></p>
+                <ul style="margin: 0.5rem 0 0 1.5rem; color: var(--text-secondary);">
+                    <li>Store your private key in your workspace and use <code>GITHUB_APP_PRIVATE_KEY_PATH</code></li>
+                    <li>Ensure proper file permissions (chmod 600) on the private key file</li>
+                    <li>Avoids having the key in process environment variables or shell history</li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- API Section -->
+        <section id="api">
+            <h2>Protocol Usage</h2>
+            <p class="section-subtitle">Simple JSON-based protocol for communication</p>
+
+            <h3>Request Format</h3>
+            <pre><code>{
+  "method": "METHOD_NAME",
+  "params": {
+    "param1": "value1",
+    "param2": "value2"
+  }
+}</code></pre>
+
+            <h3>Response Format</h3>
+            <pre><code>{
+  "result": RESPONSE_DATA
+}</code></pre>
+
+            <h3>Examples</h3>
+
+            <h4>Basic File Operation</h4>
+            <pre><code>// Request
+{
+  "method": "ls",
+  "params": { "path": "." }
+}
+
+// Response
+{
+  "result": ["main.tf", "README.md"]
+}</code></pre>
+
+            <h4>Git Repository Context</h4>
+            <pre><code>// Request
+{
+  "method": "context",
+  "params": {}
+}
+
+// Response
+{
+  "result": {
+    "current_branch": "main",
+    "repository_root": "/mnt/workspace/my-project",
+    "is_clean": false,
+    "head_commit": "a1b2c3d4e5f6...",
+    "remotes": {
+      "origin": "https://github.com/user/repo.git"
+    },
+    "recent_commits": [
+      "a1b2c3d4 Update README.md",
+      "b2c3d4e5 Fix bug in main function"
+    ]
+  }
+}</code></pre>
+
+            <h4>Interactive Prompt</h4>
+            <pre><code>// Request
+{
+  "method": "prompt",
+  "params": {
+    "prompt_type": "custom",
+    "message": "What would you like to name your file?"
+  }
+}
+
+// Response
+{
+  "result": {
+    "response": "myfile.txt",
+    "timestamp": 1622548123.45
+  }
+}</code></pre>
+        </section>
+
+        <!-- Use Cases Section -->
+        <section id="use-cases">
+            <h2>Use Cases</h2>
+            <p class="section-subtitle">Real-world applications for FastFS-MCP</p>
+
+            <div class="features-grid">
+                <div class="feature-card">
+                    <h3>AI-Assisted Development</h3>
+                    <p>Let Claude help you code, manage files, and use Git all within the same conversation.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Content Creation Workflows</h3>
+                    <p>Enable Claude to read, write, and organize files for writing projects.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Repository Management</h3>
+                    <p>Get insights into Git repositories and automate common Git operations.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Interactive Project Setup</h3>
+                    <p>Guide users through structured project initialization with interactive prompts.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>System Administration</h3>
+                    <p>Perform file system operations and maintenance tasks with AI assistance.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>Code Analysis</h3>
+                    <p>Search, analyze, and understand codebases with AI-powered insights.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Security Section -->
+        <section id="security">
+            <h2>Security Considerations</h2>
+            <p class="section-subtitle">Best practices for secure operation</p>
+
+            <div class="card">
+                <p>FastFS-MCP provides direct access to your filesystem and Git repositories. Consider the following security practices:</p>
+                <ol style="margin: 1rem 0 0 1.5rem; color: var(--text-secondary);">
+                    <li>Only run FastFS-MCP with appropriate file system permissions</li>
+                    <li>Mount only the directories you need to expose to Claude</li>
+                    <li>Use separate GitHub PATs with limited scope for authentication, or prefer GitHub Apps</li>
+                    <li>Regularly review the logs and commands executed by the server</li>
+                    <li>For GitHub Apps, store the private key securely and use installation-specific tokens</li>
+                    <li>When using GitHub App authentication, prefer file-based private keys over environment variables</li>
+                </ol>
+            </div>
+        </section>
+    </main>
+
+    <footer>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h4>Documentation</h4>
+                <ul>
+                    <li><a href="#installation">Installation</a></li>
+                    <li><a href="#tools">Tools Reference</a></li>
+                    <li><a href="#api">API Usage</a></li>
+                    <li><a href="#authentication">Authentication</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Resources</h4>
+                <ul>
+                    <li><a href="https://github.com/aj-geddes/fastfs-mcp">GitHub Repository</a></li>
+                    <li><a href="https://github.com/aj-geddes/fastfs-mcp/issues">Report Issues</a></li>
+                    <li><a href="https://github.com/aj-geddes/fastfs-mcp/blob/main/LICENSE">MIT License</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Community</h4>
+                <ul>
+                    <li><a href="https://github.com/aj-geddes/fastfs-mcp/blob/main/CONTRIBUTING.md">Contributing</a></li>
+                    <li><a href="https://github.com/aj-geddes/fastfs-mcp/pulls">Pull Requests</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>Built for AI-enhanced CLI and developer workflows with speed, structure, and simplicity.</p>
+            <p style="margin-top: 0.5rem;">&copy; 2024 FastFS-MCP. Released under the MIT License.</p>
+        </div>
+    </footer>
+
+    <script>
+        // Smooth scrolling for anchor links
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth'
+                    });
+                }
+            });
+        });
+
+        // Tab functionality
+        function initTabs() {
+            const tabContainers = document.querySelectorAll('.tabs');
+            tabContainers.forEach(container => {
+                const tabs = container.querySelectorAll('.tab');
+                tabs.forEach(tab => {
+                    tab.addEventListener('click', () => {
+                        const targetId = tab.dataset.target;
+
+                        // Update active tab
+                        tabs.forEach(t => t.classList.remove('active'));
+                        tab.classList.add('active');
+
+                        // Update active content
+                        const parent = container.parentElement;
+                        parent.querySelectorAll('.tab-content').forEach(content => {
+                            content.classList.remove('active');
+                        });
+                        parent.querySelector(`#${targetId}`).classList.add('active');
+                    });
+                });
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', initTabs);
+    </script>
+</body>
+</html>

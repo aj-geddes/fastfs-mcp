@@ -1,0 +1,6 @@
+title: FastFS-MCP
+description: A high-speed MCP (Model Context Protocol) server for filesystem operations, Git integration, and interactive prompting capabilities.
+url: https://aj-geddes.github.io
+baseurl: /fastfs-mcp
+theme: null
+plugins: []
