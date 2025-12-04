@@ -35,8 +35,15 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Make server.py executable
 RUN chmod +x /app/server.py
 
+# Create non-root user for security
+RUN groupadd -g 1001 mcpgroup && \
+    useradd -u 1001 -g mcpgroup -m mcpuser
+
 # Set working directory to the mounted workspace path
 WORKDIR /mnt/workspace
+
+# Switch to non-root user
+USER mcpuser
 
 # Run the server
 ENTRYPOINT ["python", "/app/server.py"]
